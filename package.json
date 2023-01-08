@@ -2,5 +2,12 @@
   "name": "js-lib",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@rollup/plugin-typescript": "^11.0.0",
+    "rollup": "^3.9.1",
+    "rollup-plugin-dts": "^5.1.1",
+    "tslib": "^2.4.1",
+    "typescript": "^4.9.4"
+  }
 }
