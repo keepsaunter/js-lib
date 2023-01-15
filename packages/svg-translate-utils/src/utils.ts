@@ -1,14 +1,8 @@
-import { TransAction, ViewBoxState, Point, EventStore, } from './interface';
+import { TransAction, ViewBoxState, Point, EventStore, TransStateOptions, } from './interface';
 
-export function getNewViewBoxState(svgEle: SVGElement, trans: TransAction, options?: {
-  originState?: ViewBoxState;
-  svgPos?: DOMRect;
-  initViewBoxWidth?: number;
-  maxScale?: number;
-  minScale?: number;
-  joinChar?: ',' | ' ';
-}) {
-  const { initViewBoxWidth, svgPos = getBoundingClientRect(svgEle), maxScale, minScale, joinChar = ' ', originState = getViewBox(svgEle) } = options || {};
+
+export function getNewViewBoxState(svgElement: SVGElement, trans: TransAction, options?: TransStateOptions) {
+  const { initViewBoxWidth, svgPos = getBoundingClientRect(svgElement), maxScale, minScale, joinChar = ' ', originState = getViewBox(svgElement) } = options || {};
 
   if (!(originState && svgPos)) return;
 
@@ -62,7 +56,7 @@ export function getDistance(start: EventStore, stop: EventStore) {
 };
 
 export function getViewBox(svgElement: SVGElement) {
-  return svgElement.getAttribute('viewBox');
+  return svgElement.getAttribute('viewBox') as ViewBoxState;
 }
 
 export function getBoundingClientRect(svgElement: SVGElement) {
@@ -71,4 +65,15 @@ export function getBoundingClientRect(svgElement: SVGElement) {
 
 export function updateViewBox(svgElement: SVGElement, viewBoxState: ViewBoxState) {
   svgElement.setAttribute('viewBox', viewBoxState);
+  return viewBoxState;
+}
+
+export function updateNewViewBox(svgElement: SVGElement, trans: TransAction, options?: TransStateOptions) {
+  const newState = getNewViewBoxState(svgElement, trans, options);
+
+  if (newState) {
+    return updateViewBox(svgElement, newState);
+  }
+
+  return null;
 }

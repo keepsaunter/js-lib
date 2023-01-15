@@ -17,3 +17,18 @@ export interface TransAction {
 }
 
 export type ViewBoxState = `${number} ${number} ${number} ${number}` | `${number},${number},${number},${number}`;
+
+export interface TransStateOptions {
+  originState?: ViewBoxState;
+  svgPos?: DOMRect;
+  initViewBoxWidth?: number;
+  maxScale?: number;
+  minScale?: number;
+  joinChar?: ',' | ' ';
+}
+
+
+export interface TouchStore {
+  event1?: EventStore;
+  event2?: EventStore;
+}

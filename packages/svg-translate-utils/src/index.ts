@@ -1,5 +1,5 @@
-import { ViewBoxState } from './interface';
-import { getNewViewBoxState, updateViewBox } from './utils';
+import { getNewViewBoxState, getViewBox, getDistance, updateNewViewBox } from './utils';
+import { ViewBoxState, TouchStore } from './interface';
 
 enum Platform {
   online = 'online',
@@ -9,7 +9,9 @@ enum Platform {
 
 export function addScrollToSvgElement(svgElement: SVGElement, platform: `${Platform}` = Platform.all) {
   if (!svgElement) return;
-  let lastState: ViewBoxState;
+  let lastState: ViewBoxState | null;
+  let touchStore: TouchStore;
+  let test = 1;
   const eventAbortController = new AbortController();
 
   if (platform !== Platform.h5) {
@@ -17,7 +19,7 @@ export function addScrollToSvgElement(svgElement: SVGElement, platform: `${Platf
       e.preventDefault();
 
       // 直接触发wheel事件不会触发touchstart事件，所以需要处理 lastState 为空
-      const newState = getNewViewBoxState(
+      lastState = updateNewViewBox(
         svgElement,
         {
           scale: 1 - e.deltaY * 0.002,
@@ -25,18 +27,95 @@ export function addScrollToSvgElement(svgElement: SVGElement, platform: `${Platf
             x: e.pageX,
             y: e.pageY,
           },
-        }
+        },
       );
-
-      if (newState) {
-        updateViewBox(svgElement, lastState = newState);
-      }
     };
 
     svgElement.addEventListener('wheel', wheelHandle, {
       signal: eventAbortController.signal,
     });
   }
+
+  if (platform !== Platform.online) {
+    /**** touch 开始时记录开始坐标，以及初始化 lastState */
+    const touchStartHandle = (e: TouchEvent) => {
+      const { 0: event1, 1: event2 } = e.touches;
+
+      if (event1) {
+        touchStore = {
+          event1,
+          ...(event2 && { event2 }),
+        };
+        lastState = getViewBox(svgElement);
+      }
+    };
+
+    svgElement.addEventListener('touchstart', touchStartHandle, {
+      signal: eventAbortController.signal,
+    });
+    /**** touch start */
+
+    const touchMoveHandle = (e: TouchEvent) => {
+      e.preventDefault();
+      const { 0: moveEvent1, 1: moveEvent2 } = e.touches;
+      const { event1, event2 = moveEvent2 && { pageX: moveEvent2.pageX, pageY: moveEvent2.pageY } } = touchStore || {};
+      // console.log(event1?.pageX, event1?.pageY, event2?.pageX, event2?.pageY);
+      if (svgElement && lastState && event1 && moveEvent1) {
+        if (moveEvent2) {
+          // 双指移动
+          // 根据移动距离计算比例
+          const zoom = getDistance(moveEvent1, moveEvent2) / getDistance(event1, event2);
+
+          lastState = updateNewViewBox(
+            svgElement,
+            {
+              scale: zoom,
+              origin: {
+                // 以中点坐标作为定位
+                x: (event1.pageX + event2.pageX) / 2,
+                y: (event1.pageY + event2.pageY) / 2,
+              },
+            },
+            {
+              originState: lastState,
+            }
+          );
+        } else {
+          lastState = updateNewViewBox(
+            svgElement,
+            {
+              x: moveEvent1.pageX - event1.pageX,
+              y: moveEvent1.pageY - event1.pageY,
+            },
+            {
+              originState: lastState,
+            }
+          );
+        }
+      }
+
+      // 更新事件坐标
+      touchStore.event1 = moveEvent1;
+      touchStore.event2 = moveEvent2;
+    };
+
+    svgElement.addEventListener('touchmove', touchMoveHandle, {
+      signal: eventAbortController.signal,
+    });
+
+    /**** touch结束后重置 */
+    const touchCancelHandle = () => {
+      if (touchStore) {
+        delete touchStore.event1;
+        delete touchStore.event2;
+      }
+    };
+
+    svgElement.addEventListener('touchend', touchCancelHandle, {
+      signal: eventAbortController.signal,
+    });
+  }
+  /***** touchend */
 
   return function clearEventListener() {
     eventAbortController.abort();
