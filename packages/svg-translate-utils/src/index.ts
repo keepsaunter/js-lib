@@ -1,19 +1,38 @@
 import { getNewViewBoxState, getViewBox, getDistance, updateNewViewBox } from './utils';
-import { ViewBoxState, TouchStore } from './interface';
+import { ViewBoxState, TouchStore, Point } from './interface';
 
 enum Platform {
   online = 'online',
   h5 = 'h5',
   all = 'all',
+  none = 'none',
+}
+
+let lastState: ViewBoxState | null;
+let initViewBox: ViewBoxState | null;;
+
+function scrollToPoint(svgElement: SVGElement, point: Point, scale?: number) {
+  const { x, y } = point;
+  lastState = updateNewViewBox(
+    svgElement,
+    {
+      x,
+      y,
+    },
+    scale ? {
+      originState: initViewBox!,
+    } : undefined
+  );
 }
 
 export function addScrollToSvgElement(svgElement: SVGElement, platform: `${Platform}` = Platform.all) {
   if (!svgElement) return;
-  let lastState: ViewBoxState | null;
-  let touchStore: TouchStore;
-  let test = 1;
-  const eventAbortController = new AbortController();
+  initViewBox = getViewBox(svgElement);
+  if (!initViewBox) return;
 
+  let touchStore: TouchStore;
+  const eventAbortController = new AbortController();
+  
   if (platform !== Platform.h5) {
     const wheelHandle = (e: WheelEvent)=> {
       e.preventDefault();
@@ -81,6 +100,7 @@ export function addScrollToSvgElement(svgElement: SVGElement, platform: `${Platf
             }
           );
         } else {
+          console.log('1', lastState);
           lastState = updateNewViewBox(
             svgElement,
             {
@@ -91,6 +111,7 @@ export function addScrollToSvgElement(svgElement: SVGElement, platform: `${Platf
               originState: lastState,
             }
           );
+          console.log('3', lastState);
         }
       }
 
@@ -117,7 +138,10 @@ export function addScrollToSvgElement(svgElement: SVGElement, platform: `${Platf
   }
   /***** touchend */
 
-  return function clearEventListener() {
-    eventAbortController.abort();
+  return {
+    clearEventListener() {
+      eventAbortController.abort();
+    },
+    scrollToPoint: scrollToPoint.bind(null, svgElement),
   }
 }
