@@ -8,7 +8,7 @@ export function getNewViewBoxState(svgElement: SVGElement, trans: TransAction, o
 
   // 获取之前的viewBox属性
   const [offsetX, offsetY, viewBoxWidth, viewBoxHeight ] = originState.split(/[, ]/).map(item => Number(item));
-  const { scale = 1, x = 0, y = 0, origin: { x: pageX = 0, y: pageY = 0 } = {}, svgOrigin = {} as Point } = trans;
+  const { scale = 1, x = 0, y = 0, svgX = 0, svgY = 0,origin: { x: pageX = 0, y: pageY = 0 } = {}, svgOrigin = {} as Point } = trans;
   // 获取svg的可视尺寸和位置
   const { left = 0, top = 0, width: svgWidth = 0, height: svgHeight = 0 } = svgPos;
   // 最小比例（svg的preserveAspectRatio默认值为meet会根据最小比例来缩放）
@@ -16,7 +16,7 @@ export function getNewViewBoxState(svgElement: SVGElement, trans: TransAction, o
 
   // 变化的origin在原始的svg上的坐标
   const originSvgX = svgOrigin.x ?  svgOrigin.x : ((pageX - left) - (svgWidth - viewBoxWidth * minRate) / 2) / minRate + offsetX;
-  const originSvgY = svgOrigin.y ?  svgOrigin.y :((pageY - top) - (svgHeight - viewBoxHeight * minRate) / 2) / minRate + offsetY;
+  const originSvgY = svgOrigin.y ?  svgOrigin.y : ((pageY - top) - (svgHeight - viewBoxHeight * minRate) / 2) / minRate + offsetY;
 
   let finalScale = scale;
   // 计算缩放时的比例限制
@@ -42,7 +42,7 @@ export function getNewViewBoxState(svgElement: SVGElement, trans: TransAction, o
   const newOffsetX = originSvgX - ((pageX - left) - (svgWidth - newViewBoxWidth * newMinRate) / 2) / newMinRate;
   const newOffsetY = originSvgY - ((pageY - top) - (svgHeight - newViewBoxHeight * newMinRate) / 2) / newMinRate;
 
-  return [newOffsetX - x / newMinRate, newOffsetY - y / newMinRate, newViewBoxWidth, newViewBoxHeight].join(joinChar) as ViewBoxState;
+  return [newOffsetX - (svgX || x / newMinRate), newOffsetY - (svgY || y / newMinRate), newViewBoxWidth, newViewBoxHeight].join(joinChar) as ViewBoxState;
 }
 
 /**
@@ -76,4 +76,47 @@ export function updateNewViewBox(svgElement: SVGElement, trans: TransAction, opt
   }
 
   return null;
+}
+
+function transformPoint(
+  svgElement: SVGElement,
+  point: Point,
+  isToSvg: boolean,
+  viewBoxState: ViewBoxState = getViewBox(svgElement),
+  svgPos: DOMRect = getBoundingClientRect(svgElement),
+): Point {
+  const [offsetX, offsetY, viewBoxWidth, viewBoxHeight ] = viewBoxState.split(/[, ]/).map(item => Number(item));
+  const { left = 0, top = 0, width: svgWidth = 0, height: svgHeight = 0 } = svgPos;
+
+  const minRate = Math.min(svgWidth / viewBoxWidth, svgHeight / viewBoxHeight);
+
+  return isToSvg? {
+    x: ((point.x - left) - (svgWidth - viewBoxWidth * minRate) / 2) / minRate + offsetX,
+    y: ((point.y - top) - (svgHeight - viewBoxHeight * minRate) / 2) / minRate + offsetY,
+  } : {
+    x: left + (svgWidth - viewBoxWidth * minRate) / 2 + (point.x - offsetX) * minRate,
+    y: top + (svgHeight - viewBoxHeight * minRate) / 2 + (point.y - offsetY) * minRate,
+  }
+}
+
+export function transformToSvgPoint(
+  svgElement: SVGElement,
+  pagePoint: Point,
+  viewBoxState: ViewBoxState = getViewBox(svgElement),
+  svgPos: DOMRect = getBoundingClientRect(svgElement),
+): Point {
+  return transformPoint(svgElement, pagePoint, true, viewBoxState, svgPos);
+}
+
+export function transformToPagePoint(
+  svgElement: SVGElement,
+  svgPoint: Point,
+  viewBoxState?: ViewBoxState,
+  svgPos?: DOMRect,
+): Point {
+  return transformPoint(svgElement, svgPoint, false, viewBoxState, svgPos);
+}
+
+export function calcDistanceOfSvgPointToCenter(svgElement: SVGElement, svgPoint: Point) {
+
 }

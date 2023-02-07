@@ -13,11 +13,12 @@ let initViewBox: ViewBoxState | null;;
 
 function scrollToPoint(svgElement: SVGElement, point: Point, scale?: number) {
   const { x, y } = point;
+  const bBox = svgElement.getBBox();
   lastState = updateNewViewBox(
     svgElement,
     {
-      x,
-      y,
+      svgX: bBox.width / 2 - x,
+      svgY: bBox.height / 2 - y,
     },
     scale ? {
       originState: initViewBox!,

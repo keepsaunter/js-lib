@@ -10,6 +10,8 @@ export type EventStore = {
 
 export interface TransAction {
   scale?: number;
+  svgX?: number;
+  svgY?: number;
   x?: number;
   y?: number;
   origin?: Point;
