@@ -1,4 +1,4 @@
-import { getNewViewBoxState, getViewBox, getDistance, updateNewViewBox } from './utils';
+import { getNewViewBoxState, getViewBox, getDistance, updateNewViewBox, calcDistanceOfSvgPointToCenter } from './utils';
 import { ViewBoxState, TouchStore, Point } from './interface';
 
 enum Platform {
@@ -11,14 +11,13 @@ enum Platform {
 let lastState: ViewBoxState | null;
 let initViewBox: ViewBoxState | null;;
 
-function scrollToPoint(svgElement: SVGElement, point: Point, scale?: number) {
-  const { x, y } = point;
-  const bBox = svgElement.getBBox();
+function scrollToSvgPoint(svgElement: SVGElement, svgPoint: Point, scale?: number) {
+  const { x, y } = calcDistanceOfSvgPointToCenter(svgElement, svgPoint);
   lastState = updateNewViewBox(
     svgElement,
     {
-      svgX: bBox.width / 2 - x,
-      svgY: bBox.height / 2 - y,
+      x: x,
+      y: y,
     },
     scale ? {
       originState: initViewBox!,
@@ -143,6 +142,6 @@ export function addScrollToSvgElement(svgElement: SVGElement, platform: `${Platf
     clearEventListener() {
       eventAbortController.abort();
     },
-    scrollToPoint: scrollToPoint.bind(null, svgElement),
+    scrollToSvgPoint: scrollToSvgPoint.bind(null, svgElement),
   }
 }

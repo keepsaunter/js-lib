@@ -102,8 +102,8 @@ function transformPoint(
 export function transformToSvgPoint(
   svgElement: SVGElement,
   pagePoint: Point,
-  viewBoxState: ViewBoxState = getViewBox(svgElement),
-  svgPos: DOMRect = getBoundingClientRect(svgElement),
+  viewBoxState?: ViewBoxState,
+  svgPos?: DOMRect,
 ): Point {
   return transformPoint(svgElement, pagePoint, true, viewBoxState, svgPos);
 }
@@ -117,6 +117,24 @@ export function transformToPagePoint(
   return transformPoint(svgElement, svgPoint, false, viewBoxState, svgPos);
 }
 
-export function calcDistanceOfSvgPointToCenter(svgElement: SVGElement, svgPoint: Point) {
+// export function getCenterSvgPoint(
+//   svgElement: SVGElement,
+//   pagePoint: Point,
+//   viewBoxState?: ViewBoxState,
+//   svgPos?: DOMRect,
+// ) {
+//   return transformToSvgPoint(svgElement, viewBoxState, svgPos);
+// }
 
+export function calcDistanceOfSvgPointToCenter(svgElement: SVGElement, svgPoint: Point) {
+  const { x, y, width, height } = svgElement.getBBox();
+  const c = svgElement.getBoundingClientRect();
+  const a = transformToPagePoint(svgElement, { x: width / 2 + c.x, y: height / 2 + c.y });
+  const b = transformToPagePoint(svgElement, svgPoint);
+  console.log(a, b)
+  return {
+    x: a.x - b.x,
+    y: a.y - b.y,
+    // y: height / 2 - svgPoint.y + y,
+  }
 }
